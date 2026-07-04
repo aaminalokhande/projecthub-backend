@@ -1,9 +1,11 @@
+from app.routes.projects import router as projects_router
 from fastapi import Depends
 from app.dependencies.auth import get_current_user
 from fastapi import FastAPI
 from app.database import Base, engine
 from app.models import User, Project, Task
 from app.routes.auth import router as auth_router
+from app.routes.tasks import router as tasks_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,8 +23,8 @@ def health_check():
 
 
 app.include_router(auth_router)
-
-
+app.include_router(projects_router)
+app.include_router(tasks_router)
 
 @app.get("/me")
 def get_logged_in_user(current_user: User = Depends(get_current_user)):
