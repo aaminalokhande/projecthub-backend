@@ -13,6 +13,19 @@ class TaskCreate(BaseModel):
     assigned_to: Optional[int] = None
 
 
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[str] = None
+    priority: Optional[str] = None
+    due_date: Optional[date] = None
+    assigned_to: Optional[int] = None
+
+
+class TaskStatusUpdate(BaseModel):
+    status: str
+
+
 class TaskResponse(BaseModel):
     id: int
     title: str
