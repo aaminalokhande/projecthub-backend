@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app.database import SessionLocal
 from app.models.user import User
 from app.schemas.user import UserCreate, UserLogin, UserResponse
 from app.utils.security import hash_password, verify_password, create_access_token
@@ -9,10 +9,19 @@ from app.utils.security import hash_password, verify_password, create_access_tok
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
+# Database dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    # Check if email already exists
     existing_user = db.query(User).filter(User.email == user.email).first()
-
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -22,7 +31,8 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     new_user = User(
         name=user.name,
         email=user.email,
-        password_hash=hash_password(user.password)
+        password_hash=hash_password(user.password),
+        role=user.role
     )
 
     db.add(new_user)
@@ -36,20 +46,18 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == user.email).first()
 
-    if not db_user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password"
-        )
-
-    if not verify_password(user.password, db_user.password_hash):
+    if not db_user or not verify_password(user.password, db_user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
 
     access_token = create_access_token(
-        data={"sub": str(db_user.id), "email": db_user.email}
+        data={
+            "sub": str(db_user.id),
+            "email": db_user.email,
+            "role": db_user.role
+        }
     )
 
     return {
@@ -59,6 +67,7 @@ def login_user(user: UserLogin, db: Session = Depends(get_db)):
         "user": {
             "id": db_user.id,
             "name": db_user.name,
-            "email": db_user.email
+            "email": db_user.email,
+            "role": db_user.role
         }
     }

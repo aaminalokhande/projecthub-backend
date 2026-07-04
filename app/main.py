@@ -1,3 +1,5 @@
+from fastapi import Depends
+from app.dependencies.auth import get_current_user
 from fastapi import FastAPI
 from app.database import Base, engine
 from app.models import User, Project, Task
@@ -19,3 +21,14 @@ def health_check():
 
 
 app.include_router(auth_router)
+
+
+
+@app.get("/me")
+def get_logged_in_user(current_user: User = Depends(get_current_user)):
+    return {
+        "id": current_user.id,
+        "name": current_user.name,
+        "email": current_user.email,
+        "role": current_user.role
+    }
