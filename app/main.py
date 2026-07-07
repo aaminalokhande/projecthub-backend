@@ -1,26 +1,38 @@
-from app.routes.projects import router as projects_router
-from fastapi import Depends
-from app.dependencies.auth import get_current_user
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+
 from app.database import Base, engine
 from app.models import User, Project, Task
+from app.dependencies.auth import get_current_user
 from app.routes.auth import router as auth_router
+from app.routes.projects import router as projects_router
 from app.routes.tasks import router as tasks_router
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ProjectHub API")
 
+# CORS middleware for frontend connection
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1.3000"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def root():
     return {"message": "ProjectHub backend is running"}
 
-
 @app.get("/health")
 def health_check():
     return {"status": "ok", "message": "ProjectHub API is healthy"}
-
 
 app.include_router(auth_router)
 app.include_router(projects_router)
